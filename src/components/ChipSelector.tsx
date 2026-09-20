@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { sound } from '../utils/audio';
 import { Crown, Sparkles, RotateCcw, Check, Zap, Sliders, DollarSign, ArrowUpRight } from 'lucide-react';
+import { CasinoAmountInput } from './CasinoNumpad';
 
 export interface ChipInfo {
   value: number;
@@ -28,6 +29,8 @@ export const CHIP_DENOMINATIONS: ChipInfo[] = [
   { value: 100000, label: '100K', color: '#18181b', border: '#f59e0b', accent: '#fef08a', name: 'Oniks Taç', tier: 'highroller' },
   { value: 500000, label: '500K', color: '#be123c', border: '#9f1239', accent: '#ffe4e6', name: 'Yakut Ruby', tier: 'highroller' },
   { value: 1000000, label: '1M', color: '#b45309', border: '#f59e0b', accent: '#fef3c7', name: 'Grand Royale', tier: 'highroller' },
+  { value: 5000000, label: '5M', color: '#701a75', border: '#a21caf', accent: '#fdf4ff', name: 'Balina Mor', tier: 'highroller' },
+  { value: 10000000, label: '10M', color: '#0f172a', border: '#e11d48', accent: '#ffe4e6', name: 'Kraliyet Elmas', tier: 'highroller' },
 ];
 
 interface ChipSelectorProps {
@@ -35,6 +38,7 @@ interface ChipSelectorProps {
   onSelectChip: (value: number) => void;
   currentBet: number;
   maxBet?: number;
+  minBet?: number;
   bankroll: number;
   onAddBet: (amount: number) => void;
   onSetBet?: (exactAmount: number) => void;
@@ -48,6 +52,8 @@ export const ChipSelector: React.FC<ChipSelectorProps> = ({
   selectedChip,
   onSelectChip,
   currentBet,
+  maxBet,
+  minBet,
   bankroll,
   onAddBet,
   onSetBet,
@@ -77,6 +83,8 @@ export const ChipSelector: React.FC<ChipSelectorProps> = ({
     return true;
   });
 
+  const maxAllowed = maxBet && maxBet > 0 ? Math.min(bankroll, maxBet) : bankroll;
+
   const handleManualInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/[^0-9]/g, '');
     setManualInput(val);
@@ -95,7 +103,7 @@ export const ChipSelector: React.FC<ChipSelectorProps> = ({
       return;
     }
 
-    const clamped = Math.min(bankroll, parsed);
+    const clamped = Math.min(maxAllowed, parsed);
     if (onSetBet) {
       onSetBet(clamped);
     } else {
@@ -108,18 +116,19 @@ export const ChipSelector: React.FC<ChipSelectorProps> = ({
   const handleQuickAdd = (amount: number) => {
     sound.playChip();
     if (onSetBet) {
-      const next = Math.min(bankroll, currentBet + amount);
+      const next = Math.min(maxAllowed, currentBet + amount);
       onSetBet(next);
       setManualInput(next.toString());
     } else {
-      onAddBet(amount);
+      const addAmt = Math.min(amount, Math.max(0, maxAllowed - currentBet));
+      onAddBet(addAmt);
     }
   };
 
   const handleHalfBet = () => {
     if (currentBet > 0) {
       sound.playChip();
-      const half = Math.max(1, Math.floor(currentBet / 2));
+      const half = Math.max(minBet || 1, Math.floor(currentBet / 2));
       if (onSetBet) {
         onSetBet(half);
       } else {
@@ -179,30 +188,28 @@ export const ChipSelector: React.FC<ChipSelectorProps> = ({
           </button>
         </div>
 
-        {/* Direct Manual Bet Input Quick Bar */}
+        {/* Direct Manual Bet Input Quick Bar with Casino Numpad */}
         <div className="flex items-center gap-1.5">
-          <div className="relative flex items-center">
-            <span className="absolute left-2.5 text-amber-400 font-bold text-xs pointer-events-none">$</span>
-            <input
-              type="text"
-              disabled={disabled}
-              value={manualInput}
-              onFocus={() => setIsInputFocused(true)}
-              onBlur={() => {
-                setIsInputFocused(false);
-                handleApplyManualBet();
-              }}
-              onChange={handleManualInputChange}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleApplyManualBet();
-                  (e.target as HTMLInputElement).blur();
-                }
-              }}
-              placeholder="Manuel Bahis Yaz"
-              className="w-32 sm:w-40 pl-6 pr-2 py-1.5 rounded-xl bg-slate-950 border border-amber-500/50 text-amber-200 font-serif-luxury font-bold text-xs sm:text-sm placeholder-slate-500 focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-400 transition disabled:opacity-50"
-            />
-          </div>
+          <CasinoAmountInput
+            id="manual-chip-amount-input"
+            disabled={disabled}
+            value={manualInput}
+            onChange={(val) => setManualInput(val)}
+            onApply={(amt) => {
+              if (onSetBet) {
+                onSetBet(amt);
+              } else {
+                onClearBet();
+                if (amt > 0) onAddBet(amt);
+              }
+              setManualInput(amt > 0 ? amt.toString() : '');
+            }}
+            bankroll={bankroll}
+            placeholder="Manuel Fiş Tutarı"
+            className="w-36 sm:w-48"
+            title="Manuel Fiş / Bahis Tutarı"
+            subtitle="Numpad ile tutarı belirleyin veya doğrudan tuşlayın"
+          />
           <button
             type="button"
             disabled={disabled}
@@ -372,14 +379,22 @@ export const ChipSelector: React.FC<ChipSelectorProps> = ({
               onClick={() => {
                 if (bankroll > 0) {
                   sound.playChip();
-                  onAllIn();
-                  setManualInput(bankroll.toString());
+                  if (onSetBet) {
+                    onSetBet(maxAllowed);
+                  } else {
+                    onAllIn();
+                  }
+                  setManualInput(maxAllowed.toString());
                 }
               }}
               disabled={bankroll === 0}
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-red-700 via-rose-800 to-red-950 text-amber-100 border-2 border-red-500 hover:border-amber-400 hover:brightness-110 transition disabled:opacity-30 disabled:cursor-not-allowed font-serif-luxury font-black shadow-[0_0_15px_rgba(225,29,72,0.5)] active:scale-95 uppercase tracking-wider"
             >
-              All-In (${bankroll.toLocaleString('tr-TR')})
+              {maxBet && maxBet > 0 && maxBet < bankroll ? (
+                <>Max Bahis (${maxAllowed.toLocaleString('tr-TR')})</>
+              ) : (
+                <>All-In (${maxAllowed.toLocaleString('tr-TR')})</>
+              )}
             </button>
           </div>
         </div>

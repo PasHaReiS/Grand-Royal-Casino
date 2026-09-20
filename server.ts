@@ -18,6 +18,9 @@ async function startServer() {
     multiplayer.handleConnection(ws);
   });
 
+  // Middleware for parsing JSON requests
+  app.use(express.json());
+
   // REST API Routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: Date.now() });
@@ -25,6 +28,25 @@ async function startServer() {
 
   app.get("/api/tables", (req, res) => {
     res.json(multiplayer.getTableSummaries());
+  });
+
+  app.get("/api/multiplayer/table/:tableId", (req, res) => {
+    const { tableId } = req.params;
+    const data = multiplayer.getHttpTableState(tableId);
+    if (!data) {
+      return res.status(404).json({ error: "Masa bulunamadı" });
+    }
+    res.json(data);
+  });
+
+  app.post("/api/multiplayer/action", (req, res) => {
+    try {
+      const result = multiplayer.handleHttpAction(req.body);
+      res.json(result);
+    } catch (err: any) {
+      console.error("[Multiplayer API] Error processing action:", err);
+      res.status(500).json({ success: false, error: err?.message || "Sunucu hatası" });
+    }
   });
 
   // Vite middleware for development vs Static serving in production

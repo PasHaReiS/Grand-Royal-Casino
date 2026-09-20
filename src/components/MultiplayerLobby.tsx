@@ -14,6 +14,7 @@ import {
   Gamepad2,
   RefreshCw,
 } from 'lucide-react';
+import { CasinoAmountInput } from './CasinoNumpad';
 
 interface MultiplayerLobbyProps {
   tables: TableSummary[];
@@ -364,20 +365,28 @@ export const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Min Bahis ($)</label>
-                  <input
-                    type="number"
+                  <CasinoAmountInput
+                    id="create-table-min-bet"
                     value={customMinBet}
-                    onChange={(e) => setCustomMinBet(parseInt(e.target.value, 10) || 10)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-amber-300 text-xs focus:outline-none focus:border-amber-400"
+                    onChange={(val) => setCustomMinBet(parseInt(val, 10) || 10)}
+                    onApply={(amt) => setCustomMinBet(amt || 10)}
+                    bankroll={10000000}
+                    placeholder="10"
+                    title="Minimum Bahis Limiti"
+                    subtitle="Masanın en düşük fiş tutarını belirleyin"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Max Bahis ($)</label>
-                  <input
-                    type="number"
+                  <CasinoAmountInput
+                    id="create-table-max-bet"
                     value={customMaxBet}
-                    onChange={(e) => setCustomMaxBet(parseInt(e.target.value, 10) || 100000)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-amber-300 text-xs focus:outline-none focus:border-amber-400"
+                    onChange={(val) => setCustomMaxBet(parseInt(val, 10) || 100000)}
+                    onApply={(amt) => setCustomMaxBet(amt || 100000)}
+                    bankroll={10000000}
+                    placeholder="100000"
+                    title="Maksimum Bahis Limiti"
+                    subtitle="Masanın en yüksek fiş tutarını belirleyin"
                   />
                 </div>
               </div>

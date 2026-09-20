@@ -24,6 +24,10 @@ interface ServerTable extends MultiplayerTableState {
 export class MultiplayerServer {
   private tables: Map<string, ServerTable> = new Map();
   private clients: Map<WebSocket, ClientConnection> = new Map();
+  private httpClients: Map<
+    string,
+    { playerId: string; playerName: string; isPasha: boolean; tableId: string | null; lastSeen: number }
+  > = new Map();
 
   constructor() {
     this.initDefaultTables();
@@ -1000,5 +1004,374 @@ export class MultiplayerServer {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(payload));
     }
+  }
+
+  // ---------------- HTTP REST COMPATIBILITY API ----------------
+  public getHttpTableState(tableId: string): { state: MultiplayerTableState; chatMessages: ChatMessage[] } | null {
+    const table = this.tables.get(tableId);
+    if (!table) return null;
+    return {
+      state: this.serializeTable(table),
+      chatMessages: table.chatMessages.slice(-50),
+    };
+  }
+
+  public handleHttpAction(msg: any): {
+    success: boolean;
+    state?: MultiplayerTableState;
+    chatMessages?: ChatMessage[];
+    tables?: TableSummary[];
+    error?: string;
+    playerId?: string;
+  } {
+    const playerId = msg.playerId || `http-player-${Date.now()}`;
+    const playerName = (msg.playerName || msg.name || 'VIP Oyuncu').trim();
+    const isPasha = playerName.toLowerCase() === 'pasha';
+
+    let client = this.httpClients.get(playerId);
+    if (!client) {
+      client = {
+        playerId,
+        playerName,
+        isPasha,
+        tableId: null,
+        lastSeen: Date.now(),
+      };
+      this.httpClients.set(playerId, client);
+    } else {
+      client.playerName = playerName;
+      client.isPasha = isPasha;
+      client.lastSeen = Date.now();
+    }
+
+    const targetTableId = msg.tableId || client.tableId;
+    const table = targetTableId ? this.tables.get(targetTableId) : null;
+    if (table && !client.tableId) {
+      client.tableId = table.tableId;
+    }
+
+    switch (msg.type) {
+      case 'get_tables':
+      case 'get_table_list': {
+        return {
+          success: true,
+          tables: this.getTableSummaries(),
+          playerId,
+        };
+      }
+
+      case 'join_table': {
+        const tableId = msg.tableId;
+        if (!tableId) return { success: false, error: 'Masa ID belirtilmedi.' };
+
+        let table = this.tables.get(tableId);
+        if (!table) {
+          table = this.createTable({
+            tableId,
+            name: msg.tableName || `Özel Masa #${tableId.substring(0, 6)}`,
+            gameType: msg.gameType || 'blackjack',
+            minBet: msg.minBet || 25,
+            maxBet: msg.maxBet || 1000000,
+            isVipRoom: !!msg.isVipRoom,
+          });
+        }
+
+        if (client.tableId && client.tableId !== tableId) {
+          this.leaveHttpTable(client);
+        }
+
+        client.tableId = tableId;
+
+        this.broadcastTableChat(table, {
+          id: `sys-${Date.now()}`,
+          senderId: 'system',
+          senderName: 'Sistem',
+          isPasha: false,
+          text: `${client.playerName} masaya katıldı.`,
+          timestamp: Date.now(),
+          type: 'system',
+        });
+
+        this.broadcastTableState(table);
+        this.broadcastTableList();
+
+        return {
+          success: true,
+          state: this.serializeTable(table),
+          chatMessages: table.chatMessages.slice(-50),
+          playerId,
+        };
+      }
+
+      case 'leave_table': {
+        if (client.tableId) {
+          this.leaveHttpTable(client);
+        }
+        return {
+          success: true,
+          tables: this.getTableSummaries(),
+        };
+      }
+
+      case 'sit_down': {
+        if (!table) return { success: false, error: 'Masa bulunamadı.' };
+
+        const { seatIndex, bankroll } = msg;
+        if (seatIndex < 0 || seatIndex >= table.seats.length) {
+          return { success: false, error: 'Geçersiz koltuk.' };
+        }
+
+        const targetSeat = table.seats[seatIndex];
+        if (targetSeat && targetSeat.player) {
+          return { success: false, error: 'Bu koltuk dolu!' };
+        }
+
+        for (const s of table.seats) {
+          if (s && s.player && s.player.id === client.playerId) {
+            s.player = null;
+            s.bet = 0;
+            s.cards = [];
+          }
+        }
+
+        const playerProfile: PlayerProfile = {
+          id: client.playerId,
+          name: client.playerName,
+          isPasha: client.isPasha,
+          bankroll: typeof bankroll === 'number' ? bankroll : 5000,
+        };
+
+        table.seats[seatIndex] = {
+          seatIndex,
+          player: playerProfile,
+          bet: 0,
+          cards: [],
+          score: 0,
+          isStanding: false,
+          isBusted: false,
+          isBlackjack: false,
+          isDoubled: false,
+          payout: 0,
+          heldIndices: [],
+          hasDrawn: false,
+        };
+
+        this.broadcastTableChat(table, {
+          id: `sys-${Date.now()}`,
+          senderId: 'system',
+          senderName: 'Kurpiyer',
+          isPasha: true,
+          text: `${client.playerName} ${seatIndex + 1}. Koltuğa oturdu.`,
+          timestamp: Date.now(),
+          type: 'system',
+        });
+
+        this.broadcastTableState(table);
+        this.broadcastTableList();
+
+        return {
+          success: true,
+          state: this.serializeTable(table),
+          chatMessages: table.chatMessages.slice(-50),
+        };
+      }
+
+      case 'stand_up': {
+        if (!table) return { success: false, error: 'Masa bulunamadı.' };
+
+        let leftSeat = -1;
+        for (let i = 0; i < table.seats.length; i++) {
+          const s = table.seats[i];
+          if (s && s.player && s.player.id === client.playerId) {
+            s.player = null;
+            s.bet = 0;
+            s.cards = [];
+            leftSeat = i;
+          }
+        }
+
+        if (leftSeat !== -1) {
+          this.broadcastTableChat(table, {
+            id: `sys-${Date.now()}`,
+            senderId: 'system',
+            senderName: 'Kurpiyer',
+            isPasha: true,
+            text: `${client.playerName} masadan kalktı.`,
+            timestamp: Date.now(),
+            type: 'system',
+          });
+          this.broadcastTableState(table);
+          this.broadcastTableList();
+        }
+
+        return {
+          success: true,
+          state: this.serializeTable(table),
+          chatMessages: table.chatMessages.slice(-50),
+        };
+      }
+
+      case 'place_bet': {
+        const { amount } = msg;
+        if (!table || table.phase !== 'waiting_bets') {
+          return { success: false, error: 'Bahisler şu an kapalı.' };
+        }
+
+        const seat = table.seats.find((s) => s && s.player && s.player.id === client.playerId);
+        if (!seat || !seat.player) return { success: false, error: 'Masada oturmuyorsunuz.' };
+
+        const betAmt = Math.min(table.maxBet, Math.max(0, parseInt(amount, 10) || 0));
+        seat.bet = betAmt;
+
+        this.broadcastTableState(table);
+
+        return {
+          success: true,
+          state: this.serializeTable(table),
+          chatMessages: table.chatMessages.slice(-50),
+        };
+      }
+
+      case 'start_deal': {
+        if (!table || table.phase !== 'waiting_bets') {
+          return { success: false, error: 'El şu an başlatılamaz.' };
+        }
+
+        const activeSeats = table.seats.filter((s) => s && s.player && s.bet >= table.minBet);
+        if (activeSeats.length === 0) {
+          return {
+            success: false,
+            error: `Oyunu başlatmak için en az bir oyuncunun asgari $${table.minBet} bahis koyması gerekir.`,
+          };
+        }
+
+        this.startRound(table);
+
+        return {
+          success: true,
+          state: this.serializeTable(table),
+          chatMessages: table.chatMessages.slice(-50),
+        };
+      }
+
+      case 'player_action': {
+        const { action } = msg;
+        if (!table || table.phase !== 'player_turns') {
+          return { success: false, error: 'Şu an oyuncu hamlesi beklenmiyor.' };
+        }
+
+        if (table.activeSeatIndex === null) return { success: false, error: 'Aktif koltuk yok.' };
+        const activeSeat = table.seats[table.activeSeatIndex];
+        if (!activeSeat || !activeSeat.player || activeSeat.player.id !== client.playerId) {
+          return { success: false, error: 'Şu anda sizin sıranız değil.' };
+        }
+
+        this.handlePlayerAction(table, activeSeat, action);
+
+        return {
+          success: true,
+          state: this.serializeTable(table),
+          chatMessages: table.chatMessages.slice(-50),
+        };
+      }
+
+      case 'poker_toggle_hold': {
+        const { cardIndex } = msg;
+        if (!table || table.gameType !== 'poker' || table.phase !== 'player_turns') {
+          return { success: false };
+        }
+
+        const seat = table.seats.find((s) => s && s.player && s.player.id === client.playerId);
+        if (!seat || seat.hasDrawn) return { success: false };
+
+        const currentHolds = seat.heldIndices || [];
+        if (currentHolds.includes(cardIndex)) {
+          seat.heldIndices = currentHolds.filter((idx) => idx !== cardIndex);
+        } else {
+          seat.heldIndices = [...currentHolds, cardIndex];
+        }
+
+        this.broadcastTableState(table);
+
+        return {
+          success: true,
+          state: this.serializeTable(table),
+          chatMessages: table.chatMessages.slice(-50),
+        };
+      }
+
+      case 'poker_draw': {
+        if (!table || table.gameType !== 'poker' || table.phase !== 'player_turns') {
+          return { success: false };
+        }
+
+        const seat = table.seats.find((s) => s && s.player && s.player.id === client.playerId);
+        if (!seat || seat.hasDrawn) return { success: false };
+
+        this.handlePokerDraw(table, seat);
+
+        return {
+          success: true,
+          state: this.serializeTable(table),
+          chatMessages: table.chatMessages.slice(-50),
+        };
+      }
+
+      case 'chat_message': {
+        const { text, chatType = 'chat' } = msg;
+        if (!table || !text || !text.trim()) return { success: false };
+
+        const chatMsg: ChatMessage = {
+          id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          senderId: client.playerId,
+          senderName: client.playerName,
+          isPasha: client.isPasha,
+          text: text.trim().slice(0, 140),
+          timestamp: Date.now(),
+          type: chatType === 'reaction' ? 'reaction' : 'chat',
+        };
+
+        this.broadcastTableChat(table, chatMsg);
+
+        return {
+          success: true,
+          state: this.serializeTable(table),
+          chatMessages: table.chatMessages.slice(-50),
+        };
+      }
+
+      case 'sync_bankroll': {
+        const { bankroll } = msg;
+        if (table && typeof bankroll === 'number') {
+          const seat = table.seats.find((s) => s && s.player && s.player.id === client.playerId);
+          if (seat && seat.player) {
+            seat.player.bankroll = bankroll;
+            this.broadcastTableState(table);
+          }
+        }
+        return { success: true };
+      }
+
+      default:
+        return { success: false, error: 'Bilinmeyen istek tipi.' };
+    }
+  }
+
+  private leaveHttpTable(client: { playerId: string; playerName: string; isPasha: boolean; tableId: string | null }) {
+    if (!client.tableId) return;
+    const table = this.tables.get(client.tableId);
+    client.tableId = null;
+    if (!table) return;
+
+    for (const s of table.seats) {
+      if (s && s.player && s.player.id === client.playerId) {
+        s.player = null;
+        s.bet = 0;
+        s.cards = [];
+      }
+    }
+
+    this.broadcastTableState(table);
+    this.broadcastTableList();
   }
 }

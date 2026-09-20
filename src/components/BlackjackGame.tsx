@@ -6,7 +6,10 @@ import { calculateBlackjackHand, canSplit, canDoubleDown } from '../utils/blackj
 import { CardView } from './CardView';
 import { ChipSelector } from './ChipSelector';
 import { sound } from '../utils/audio';
-import { ShieldAlert, Sparkles, Trophy, Users } from 'lucide-react';
+import { ShieldAlert, Sparkles, Trophy, Users, Sliders } from 'lucide-react';
+import { TableTier, getSavedTableTier, saveTableTier, formatLimitText } from '../utils/tableTiers';
+import { TableBanner } from './TableBanner';
+import { TableTierSelectorModal } from './TableTierSelectorModal';
 
 interface BlackjackGameProps {
   bankroll: number;
@@ -21,11 +24,14 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
   onRecordGameResult,
   onSwitchToMultiplayer,
 }) => {
+  const [tableTier, setTableTier] = useState<TableTier>(() => getSavedTableTier('blackjack'));
+  const [isTableSelectorOpen, setIsTableSelectorOpen] = useState<boolean>(false);
+
   const [deck, setDeck] = useState<Card[]>(() => createDeck(6));
   const [phase, setPhase] = useState<BlackjackPhase>('betting');
-  const [bet, setBet] = useState<number>(50);
-  const [lastBet, setLastBet] = useState<number>(50);
-  const [selectedChip, setSelectedChip] = useState<number>(50);
+  const [bet, setBet] = useState<number>(() => Math.max(50, getSavedTableTier('blackjack').defaultChip));
+  const [lastBet, setLastBet] = useState<number>(() => Math.max(50, getSavedTableTier('blackjack').defaultChip));
+  const [selectedChip, setSelectedChip] = useState<number>(() => getSavedTableTier('blackjack').defaultChip);
 
   // Dealer State
   const [dealerCards, setDealerCards] = useState<Card[]>([]);
@@ -61,6 +67,18 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
   // Start Deal
   const handleDeal = () => {
     if (bet <= 0 || bet > bankroll) return;
+
+    if (bet < tableTier.minBet) {
+      sound.playLose();
+      setRoundResultMessage(`Bu masada minimum bahis $${tableTier.minBet.toLocaleString('tr-TR')}'dir!`);
+      return;
+    }
+
+    if (tableTier.maxBet > 0 && bet > tableTier.maxBet) {
+      sound.playLose();
+      setRoundResultMessage(`Bu masada maksimum bahis $${tableTier.maxBet.toLocaleString('tr-TR')}'dir!`);
+      return;
+    }
 
     sound.playChip();
     onUpdateBankroll(-bet);
@@ -406,7 +424,14 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
   const canPlayerDouble = phase === 'playerTurn' && activeHand && canDoubleDown(activeHand, bankroll);
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
+    <div className="w-full max-w-5xl mx-auto flex flex-col gap-3">
+      {/* Table Tier Banner */}
+      <TableBanner
+        currentTier={tableTier}
+        onOpenSelector={() => setIsTableSelectorOpen(true)}
+        gameName="Blackjack"
+      />
+
       {/* Luxury Casino Table Viewport: Heavy Mahogany Rim + Padded Leather Armrest + Curved Felt */}
       <div className="relative w-full wood-rim-mahogany rounded-t-[32px] table-horseshoe-curved p-2 sm:p-4 shadow-[0_25px_60px_rgba(0,0,0,0.95)]">
         {/* Padded Stitched Leather Armrest Perimeter */}
@@ -436,7 +461,7 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
             <div className="relative z-20 w-full flex items-center justify-between pb-2 border-b border-amber-500/20 mb-2">
               <div className="text-[11px] font-serif-luxury font-bold text-amber-300 uppercase tracking-widest flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
-                <span className="gold-gradient-text">VIP Salonu • Tekli Blackjack</span>
+                <span className="gold-gradient-text">{tableTier.name} • {formatLimitText(tableTier.minBet, tableTier.maxBet)}</span>
               </div>
 
               {onSwitchToMultiplayer && (
@@ -626,15 +651,30 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
       <div className="w-full bg-slate-900/90 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-amber-500/30 shadow-xl flex flex-col gap-4">
         {phase === 'betting' && (
           <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center justify-between w-full max-w-lg">
-              <div className="text-xs font-semibold text-slate-400">
-                VIP Masa Limiti: $5 - $1.000.000+
+            <div className="flex items-center justify-between w-full max-w-xl flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-300">
+                  {tableTier.badge} {tableTier.name}:
+                </span>
+                <span className="text-xs font-serif-luxury font-bold text-amber-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                  {formatLimitText(tableTier.minBet, tableTier.maxBet)}
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-300">Seçilen Bahis:</span>
-                <span className="font-serif-luxury font-bold text-lg text-amber-300">
-                  ${bet.toLocaleString('tr-TR')}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsTableSelectorOpen(true)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition flex items-center gap-1"
+                >
+                  <Sliders className="w-3 h-3" />
+                  Masa Değiştir
+                </button>
+                <div className="flex items-center gap-1.5 pl-2 border-l border-slate-800">
+                  <span className="text-xs font-medium text-slate-400">Bahis:</span>
+                  <span className="font-serif-luxury font-bold text-base sm:text-lg text-amber-300">
+                    ${bet.toLocaleString('tr-TR')}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -643,15 +683,22 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
               selectedChip={selectedChip}
               onSelectChip={setSelectedChip}
               currentBet={bet}
+              minBet={tableTier.minBet}
+              maxBet={tableTier.maxBet}
               bankroll={bankroll}
               onAddBet={(val) => {
-                setBet(prev => Math.min(bankroll, prev + val));
+                const maxAllowed = tableTier.maxBet > 0 ? Math.min(bankroll, tableTier.maxBet) : bankroll;
+                setBet(prev => Math.min(maxAllowed, prev + val));
               }}
               onSetBet={(val) => {
-                setBet(Math.min(bankroll, Math.max(0, val)));
+                const maxAllowed = tableTier.maxBet > 0 ? Math.min(bankroll, tableTier.maxBet) : bankroll;
+                setBet(Math.min(maxAllowed, Math.max(0, val)));
               }}
               onClearBet={() => setBet(0)}
-              onAllIn={() => setBet(bankroll)}
+              onAllIn={() => {
+                const maxAllowed = tableTier.maxBet > 0 ? Math.min(bankroll, tableTier.maxBet) : bankroll;
+                setBet(maxAllowed);
+              }}
             />
 
             {/* Deal Button */}
@@ -740,6 +787,23 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
           </div>
         )}
       </div>
+
+      {/* Table Tier Selector Modal */}
+      <TableTierSelectorModal
+        isOpen={isTableSelectorOpen}
+        onClose={() => setIsTableSelectorOpen(false)}
+        currentTier={tableTier}
+        onSelectTier={(newTier) => {
+          setTableTier(newTier);
+          saveTableTier('blackjack', newTier);
+          const newDefault = Math.max(newTier.minBet, Math.min(bankroll, newTier.defaultChip));
+          setBet(newDefault);
+          setLastBet(newDefault);
+          setSelectedChip(newTier.defaultChip);
+        }}
+        bankroll={bankroll}
+        gameTitle="Blackjack"
+      />
     </div>
   );
 };

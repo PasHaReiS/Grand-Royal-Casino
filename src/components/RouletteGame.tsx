@@ -3,6 +3,7 @@ import { RouletteBet, RouletteHistoryItem } from '../types';
 import { RouletteWheel } from './RouletteWheel';
 import { RouletteTable } from './RouletteTable';
 import { ChipSelector, CHIP_DENOMINATIONS } from './ChipSelector';
+import { CasinoAmountInput } from './CasinoNumpad';
 import {
   ROULETTE_SEQUENCE,
   getNumberColor,
@@ -599,11 +600,31 @@ export const RouletteGame: React.FC<RouletteGameProps> = ({
 
       {/* CHIP SELECTOR FOOTER WITH 3D CHIP VISUALS */}
       <div className="w-full bg-slate-950/95 border-2 border-amber-500/40 p-4 rounded-2xl shadow-2xl space-y-3">
-        <div className="flex items-center justify-between text-xs font-serif-luxury font-bold text-slate-300">
-          <span className="flex items-center gap-1.5 text-amber-300 uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b]" />
-            <span>3D Bahis Fişi Seçimi</span>
-          </span>
+        <div className="flex items-center justify-between text-xs font-serif-luxury font-bold text-slate-300 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 text-amber-300 uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b]" />
+              <span>3D Bahis Fişi Seçimi</span>
+            </span>
+            <div className="flex items-center gap-1.5 ml-2">
+              <CasinoAmountInput
+                id="roulette-custom-chip-input"
+                value={selectedChip}
+                onChange={(val) => {
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && num > 0) setSelectedChip(num);
+                }}
+                onApply={(num) => {
+                  if (num > 0) setSelectedChip(num);
+                }}
+                bankroll={bankroll}
+                placeholder="Özel Fiş Tutarı"
+                className="w-36 sm:w-44"
+                title="Rulet Özel Fiş Tutarı"
+                subtitle="Masaya koymak istediğiniz özel fiş miktarını tuşlayın"
+              />
+            </div>
+          </div>
           <span className="text-slate-300">
             Kasa Bakiyesi: <strong className="text-amber-300 font-serif-luxury text-sm">${bankroll.toLocaleString('tr-TR')}</strong>
           </span>

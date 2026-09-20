@@ -14,10 +14,12 @@ import {
   CheckCircle2,
   TrendingUp,
   FastForward,
-  Info
+  Info,
+  Calculator,
 } from 'lucide-react';
 import { isVipManager, VaultDebtInfo } from '../types';
 import { sound } from '../utils/audio';
+import { CasinoNumpadModal } from './CasinoNumpad';
 import {
   getRemainingDaysUntilWeeklyDue,
   getDailyInterestAmount,
@@ -77,6 +79,47 @@ export const VipVaultModal: React.FC<VipVaultModalProps> = ({
   // Patron direct add state
   const [patronAmount, setPatronAmount] = useState<number>(10000);
   const [patronInput, setPatronInput] = useState<string>('10000');
+
+  // Numpad Modal State
+  const [numpadConfig, setNumpadConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle: string;
+    initialValue: string | number;
+    bankroll: number;
+    onConfirm: (num: number) => void;
+  }>({
+    isOpen: false,
+    title: 'Manuel Tutar',
+    subtitle: 'Miktarı tuşlayın',
+    initialValue: '',
+    bankroll: 10000000,
+    onConfirm: () => {},
+  });
+
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      [
+        'Backspace',
+        'Delete',
+        'Tab',
+        'Escape',
+        'Enter',
+        'ArrowLeft',
+        'ArrowRight',
+        'ArrowUp',
+        'ArrowDown',
+        'Home',
+        'End',
+      ].includes(e.key) ||
+      ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase()))
+    ) {
+      return;
+    }
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
 
   // Feedback notifications
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'warn' | 'error' } | null>(null);
@@ -349,7 +392,43 @@ export const VipVaultModal: React.FC<VipVaultModalProps> = ({
                 <input
                   id="borrow-amount-input"
                   type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={borrowInput}
+                  onClick={() =>
+                    setNumpadConfig({
+                      isOpen: true,
+                      title: 'Avans Tutarı Belirle',
+                      subtitle: 'Çekmek istediğiniz kasa avans tutarını tuşlayın',
+                      initialValue: borrowInput,
+                      bankroll: 50000000,
+                      onConfirm: (num) => {
+                        setBorrowAmount(num);
+                        setBorrowInput(num > 0 ? num.toString() : '');
+                      },
+                    })
+                  }
+                  onFocus={() =>
+                    setNumpadConfig({
+                      isOpen: true,
+                      title: 'Avans Tutarı Belirle',
+                      subtitle: 'Çekmek istediğiniz kasa avans tutarını tuşlayın',
+                      initialValue: borrowInput,
+                      bankroll: 50000000,
+                      onConfirm: (num) => {
+                        setBorrowAmount(num);
+                        setBorrowInput(num > 0 ? num.toString() : '');
+                      },
+                    })
+                  }
+                  onKeyDown={handleNumericKeyDown}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const text = e.clipboardData.getData('text').replace(/\D/g, '');
+                    setBorrowInput(text);
+                    const parsed = parseInt(text, 10);
+                    setBorrowAmount(!isNaN(parsed) ? parsed : 0);
+                  }}
                   onChange={(e) => {
                     const val = e.target.value.replace(/[^0-9]/g, '');
                     setBorrowInput(val);
@@ -357,12 +436,32 @@ export const VipVaultModal: React.FC<VipVaultModalProps> = ({
                     setBorrowAmount(!isNaN(parsed) ? parsed : 0);
                   }}
                   placeholder="0"
-                  className="w-full pl-8 pr-28 py-3.5 rounded-2xl bg-slate-900 border-2 border-amber-500/60 text-amber-100 font-serif-luxury font-black text-xl tracking-wider focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-500/20 shadow-inner"
+                  className="w-full pl-8 pr-36 py-3.5 rounded-2xl bg-slate-900 border-2 border-amber-500/60 text-amber-100 font-serif-luxury font-black text-xl tracking-wider focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-500/20 shadow-inner cursor-pointer"
                 />
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 font-serif-luxury font-black text-lg">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 font-serif-luxury font-black text-lg select-none">
                   $
                 </span>
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNumpadConfig({
+                        isOpen: true,
+                        title: 'Avans Tutarı Belirle',
+                        subtitle: 'Çekmek istediğiniz kasa avans tutarını tuşlayın',
+                        initialValue: borrowInput,
+                        bankroll: 50000000,
+                        onConfirm: (num) => {
+                          setBorrowAmount(num);
+                          setBorrowInput(num > 0 ? num.toString() : '');
+                        },
+                      })
+                    }
+                    className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition flex items-center gap-1"
+                    title="Numpad Aç"
+                  >
+                    <Calculator className="w-4 h-4" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -609,15 +708,67 @@ export const VipVaultModal: React.FC<VipVaultModalProps> = ({
                   <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center gap-2">
                     <div className="relative flex-1">
                       <input
+                        id="repay-custom-amount-input"
                         type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={repayCustomInput}
+                        onClick={() =>
+                          setNumpadConfig({
+                            isOpen: true,
+                            title: 'Kısmi Borç Ödeme',
+                            subtitle: 'Ödemek istediğiniz tutarı tuşlayın',
+                            initialValue: repayCustomInput,
+                            bankroll: Math.min(bankroll, totalDebt),
+                            onConfirm: (num) => {
+                              setRepayCustomInput(num > 0 ? num.toString() : '');
+                            },
+                          })
+                        }
+                        onFocus={() =>
+                          setNumpadConfig({
+                            isOpen: true,
+                            title: 'Kısmi Borç Ödeme',
+                            subtitle: 'Ödemek istediğiniz tutarı tuşlayın',
+                            initialValue: repayCustomInput,
+                            bankroll: Math.min(bankroll, totalDebt),
+                            onConfirm: (num) => {
+                              setRepayCustomInput(num > 0 ? num.toString() : '');
+                            },
+                          })
+                        }
+                        onKeyDown={handleNumericKeyDown}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const text = e.clipboardData.getData('text').replace(/\D/g, '');
+                          setRepayCustomInput(text);
+                        }}
                         onChange={(e) => setRepayCustomInput(e.target.value.replace(/[^0-9]/g, ''))}
                         placeholder="Kısmi ödeme tutarı yazın..."
-                        className="w-full pl-7 pr-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-slate-100 font-serif-luxury font-bold focus:outline-none focus:border-amber-400"
+                        className="w-full pl-7 pr-10 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-slate-100 font-serif-luxury font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
                       />
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs select-none">
                         $
                       </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setNumpadConfig({
+                            isOpen: true,
+                            title: 'Kısmi Borç Ödeme',
+                            subtitle: 'Ödemek istediğiniz tutarı tuşlayın',
+                            initialValue: repayCustomInput,
+                            bankroll: Math.min(bankroll, totalDebt),
+                            onConfirm: (num) => {
+                              setRepayCustomInput(num > 0 ? num.toString() : '');
+                            },
+                          })
+                        }
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-amber-400 hover:text-amber-300 p-1"
+                        title="Numpad Aç"
+                      >
+                        <Calculator className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <button
                       type="button"
@@ -664,19 +815,76 @@ export const VipVaultModal: React.FC<VipVaultModalProps> = ({
               </label>
               <div className="relative">
                 <input
+                  id="patron-amount-input"
                   type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={patronInput}
+                  onClick={() =>
+                    setNumpadConfig({
+                      isOpen: true,
+                      title: 'Patron Rezerv Takviyesi',
+                      subtitle: 'Kasaya aktarılacak tutarı tuşlayın',
+                      initialValue: patronInput,
+                      bankroll: 100000000,
+                      onConfirm: (num) => {
+                        setPatronAmount(num);
+                        setPatronInput(num > 0 ? num.toString() : '');
+                      },
+                    })
+                  }
+                  onFocus={() =>
+                    setNumpadConfig({
+                      isOpen: true,
+                      title: 'Patron Rezerv Takviyesi',
+                      subtitle: 'Kasaya aktarılacak tutarı tuşlayın',
+                      initialValue: patronInput,
+                      bankroll: 100000000,
+                      onConfirm: (num) => {
+                        setPatronAmount(num);
+                        setPatronInput(num > 0 ? num.toString() : '');
+                      },
+                    })
+                  }
+                  onKeyDown={handleNumericKeyDown}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const text = e.clipboardData.getData('text').replace(/\D/g, '');
+                    setPatronInput(text);
+                    const parsed = parseInt(text, 10);
+                    setPatronAmount(!isNaN(parsed) ? parsed : 0);
+                  }}
                   onChange={(e) => {
                     const val = e.target.value.replace(/[^0-9]/g, '');
                     setPatronInput(val);
                     const parsed = parseInt(val, 10);
                     setPatronAmount(!isNaN(parsed) ? parsed : 0);
                   }}
-                  className="w-full pl-8 pr-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-amber-500/60 text-amber-100 font-serif-luxury font-black text-xl tracking-wider focus:outline-none focus:border-amber-400"
+                  className="w-full pl-8 pr-12 py-3.5 rounded-2xl bg-slate-900 border-2 border-amber-500/60 text-amber-100 font-serif-luxury font-black text-xl tracking-wider focus:outline-none focus:border-amber-400 cursor-pointer"
                 />
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 font-serif-luxury font-black text-lg">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 font-serif-luxury font-black text-lg select-none">
                   $
                 </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNumpadConfig({
+                      isOpen: true,
+                      title: 'Patron Rezerv Takviyesi',
+                      subtitle: 'Kasaya aktarılacak tutarı tuşlayın',
+                      initialValue: patronInput,
+                      bankroll: 100000000,
+                      onConfirm: (num) => {
+                        setPatronAmount(num);
+                        setPatronInput(num > 0 ? num.toString() : '');
+                      },
+                    })
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400 hover:text-amber-300 p-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40"
+                  title="Numpad Aç"
+                >
+                  <Calculator className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
@@ -727,6 +935,20 @@ export const VipVaultModal: React.FC<VipVaultModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Embedded Numpad Modal for VipVault */}
+      <CasinoNumpadModal
+        isOpen={numpadConfig.isOpen}
+        onClose={() => setNumpadConfig((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={(val) => {
+          numpadConfig.onConfirm(val);
+          setNumpadConfig((prev) => ({ ...prev, isOpen: false }));
+        }}
+        title={numpadConfig.title}
+        subtitle={numpadConfig.subtitle}
+        initialValue={numpadConfig.initialValue}
+        bankroll={numpadConfig.bankroll}
+      />
     </div>
   );
 };
