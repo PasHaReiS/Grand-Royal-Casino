@@ -1,6 +1,6 @@
 import React from 'react';
-import { Crown, Volume2, VolumeX, BookOpen, PlusCircle, User, Edit3, ShieldAlert, Users, Radio } from 'lucide-react';
-import { GameView, isVipManager } from '../types';
+import { Crown, Volume2, VolumeX, BookOpen, PlusCircle, User, Edit3, ShieldAlert, Users, Radio, AlertTriangle } from 'lucide-react';
+import { GameView, isVipManager, VaultDebtInfo } from '../types';
 import { sound } from '../utils/audio';
 
 interface NavbarProps {
@@ -14,6 +14,7 @@ interface NavbarProps {
   playerName: string;
   isMuted: boolean;
   onToggleSound: () => void;
+  debtInfo?: VaultDebtInfo;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -27,8 +28,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   playerName,
   isMuted,
   onToggleSound,
+  debtInfo,
 }) => {
   const isPasha = isVipManager(playerName);
+  const totalDebt = (debtInfo?.principal || 0) + (debtInfo?.accruedInterest || 0);
+  const hasDebt = totalDebt > 0;
   return (
     <header className="sticky top-0 z-50 w-full bg-slate-950/90 backdrop-blur-md border-b border-amber-500/30 shadow-[0_4px_25px_rgba(0,0,0,0.8)]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2">
@@ -180,28 +184,50 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-[10px] font-black text-slate-950">$</span>
             </div>
             <div className="flex flex-col text-right">
-              <span className="text-[9px] text-amber-400/80 uppercase font-semibold leading-none">VIP Kasa</span>
+              <span className="text-[9px] text-amber-400/80 uppercase font-semibold leading-none">Bakiye</span>
               <span className="font-serif-luxury font-bold text-xs sm:text-base text-amber-200 tracking-tight leading-tight">
                 ${bankroll.toLocaleString('tr-TR')}
               </span>
             </div>
 
-            {/* VIP Reload / Vault Button (Opens Manual Amount & Manager Modal) */}
+            {/* VIP Reload / Vault Button (Opens Manual Amount & Manager / Loan Modal) */}
             <button
+              id="navbar-open-vault-btn"
               onClick={() => {
                 sound.playChip();
                 onOpenVault();
               }}
-              title={isPasha ? 'VIP Kasa Takviyesi (Manuel Rakam Seç)' : "VIP Kasa (Yalnızca PasHa Yönetebilir)"}
+              title={isPasha ? 'VIP Kasa (Patron Yönetimi & Fonlar)' : 'VIP Kasa (Borç & Avans Kredisi Çek)'}
               className={`ml-0.5 sm:ml-1 p-1 rounded-md transition active:scale-95 flex items-center ${
                 isPasha
                   ? 'text-amber-400 hover:text-amber-100 hover:bg-amber-500/30'
-                  : 'text-amber-500/60 hover:text-amber-300 hover:bg-slate-800'
+                  : 'text-amber-400 hover:text-amber-200 hover:bg-slate-800'
               }`}
             >
               <PlusCircle className="w-4 h-4 sm:w-4 sm:h-4 text-amber-400" />
             </button>
           </div>
+
+          {/* Active Debt Badge (if member has outstanding debt) */}
+          {hasDebt && (
+            <button
+              id="navbar-active-debt-badge"
+              onClick={() => {
+                sound.playClick();
+                onOpenVault();
+              }}
+              title="Aktif Kasa Borcu & Faiz (Ödemek için tıklayın)"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-red-950/70 border border-red-500/60 hover:bg-red-900/60 text-red-200 transition active:scale-95 shadow-sm"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-red-400 animate-pulse flex-shrink-0" />
+              <div className="flex flex-col text-right leading-tight">
+                <span className="text-[8px] uppercase font-bold text-red-300">Borç (%{debtInfo?.dailyRatePercent || 5}/g)</span>
+                <span className="font-serif-luxury font-bold text-xs text-red-100">
+                  ${totalDebt.toLocaleString('tr-TR')}
+                </span>
+              </div>
+            </button>
+          )}
 
           {/* Sound Toggle */}
           <button

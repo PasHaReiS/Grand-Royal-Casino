@@ -1,8 +1,9 @@
 import React from 'react';
-import { GameView, UserStats, GameHistoryEntry, isVipManager } from '../types';
+import { GameView, UserStats, GameHistoryEntry, isVipManager, VaultDebtInfo } from '../types';
 import { sound } from '../utils/audio';
-import { Crown, Sparkles, ArrowRight, Zap, User, Lock, Edit3, Users, Radio } from 'lucide-react';
+import { Crown, Sparkles, ArrowRight, Zap, User, Lock, Edit3, Users, Radio, AlertTriangle, DollarSign, Clock } from 'lucide-react';
 import { StatisticsPanel } from './StatisticsPanel';
+import { getRemainingDaysUntilWeeklyDue } from '../utils/debtHelper';
 
 interface LobbyProps {
   onSelectGame: (view: GameView) => void;
@@ -14,6 +15,7 @@ interface LobbyProps {
   stats: UserStats;
   history: GameHistoryEntry[];
   onResetStats?: () => void;
+  debtInfo?: VaultDebtInfo;
 }
 
 export const Lobby: React.FC<LobbyProps> = ({
@@ -26,8 +28,14 @@ export const Lobby: React.FC<LobbyProps> = ({
   stats,
   history,
   onResetStats,
+  debtInfo,
 }) => {
   const isPasha = isVipManager(playerName);
+  const totalDebt = (debtInfo?.principal || 0) + (debtInfo?.accruedInterest || 0);
+  const hasActiveDebt = totalDebt > 0;
+  const weeklyDueStatus = hasActiveDebt && debtInfo
+    ? getRemainingDaysUntilWeeklyDue(debtInfo.weeklyDueDate, debtInfo.simulatedDaysElapsed || 0)
+    : null;
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-8 pb-10">
@@ -88,23 +96,37 @@ export const Lobby: React.FC<LobbyProps> = ({
           </div>
 
           {/* Quick VIP Bankroll Box */}
-          <div className="w-full md:w-auto flex-shrink-0 bg-slate-900/90 border border-amber-500/40 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col gap-3 min-w-[260px]">
+          <div className="w-full md:w-auto flex-shrink-0 bg-slate-900/90 border border-amber-500/40 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col gap-3 min-w-[270px]">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">VIP Kasa</span>
+              <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Oynanabilir Bakiye</span>
               <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
                 isPasha 
                   ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/30' 
-                  : 'bg-slate-800 text-slate-400 border border-slate-700'
+                  : hasActiveDebt
+                  ? 'bg-red-950 text-red-300 border border-red-500/50'
+                  : 'bg-slate-800 text-amber-300/80 border border-slate-700'
               }`}>
-                {isPasha ? 'PasHa Yetkili' : 'PasHa Korumalı'}
+                {isPasha ? 'VIP Patron' : hasActiveDebt ? 'Borçlu Üye' : 'Kulüp Üyesi'}
               </span>
             </div>
-            <div className="font-serif-luxury font-black text-2xl sm:text-3xl text-amber-200">
-              ${bankroll.toLocaleString('tr-TR')}
+            
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="font-serif-luxury font-black text-2xl sm:text-3xl text-amber-200">
+                ${bankroll.toLocaleString('tr-TR')}
+              </div>
+              {hasActiveDebt && (
+                <div className="text-right">
+                  <span className="text-[10px] text-red-400 font-bold block uppercase">Kasa Borcu</span>
+                  <span className="font-serif-luxury font-bold text-sm text-red-300">
+                    ${totalDebt.toLocaleString('tr-TR')}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Main Action: Open VIP Vault Modal (Manual Amount Selection & Authorization) */}
+            {/* Main Action: Open VIP Vault Modal (Borrow or Manage) */}
             <button
+              id="lobby-vault-action-btn"
               onClick={() => {
                 sound.playChip();
                 onOpenVault();
@@ -112,24 +134,31 @@ export const Lobby: React.FC<LobbyProps> = ({
               className={`w-full py-2.5 px-3 rounded-xl font-serif-luxury font-bold text-xs uppercase tracking-wider shadow active:scale-95 transition flex items-center justify-center gap-1.5 ${
                 isPasha
                   ? 'bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg'
-                  : 'bg-slate-800 hover:bg-slate-750 text-amber-300 border border-amber-500/40'
+                  : hasActiveDebt
+                  ? 'bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-slate-950 shadow-lg'
+                  : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40'
               }`}
             >
               {isPasha ? (
                 <>
                   <Zap className="w-3.5 h-3.5 text-slate-950" />
-                  VIP Kasa Takviyesi (Manuel Seç)
+                  VIP Patron Kasası & Rezerv
+                </>
+              ) : hasActiveDebt ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-slate-950 animate-pulse" />
+                  Borç & Faiz Durumu (${totalDebt.toLocaleString('tr-TR')})
                 </>
               ) : (
                 <>
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                  VIP Kasa Takviyesi (PasHa Yetkili)
+                  <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+                  Kasadan Borç / Avans Çek (%5/gün)
                 </>
               )}
             </button>
 
             <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
-              <span>Yönetici: <strong className="text-amber-300">PasHa</strong></span>
+              <span>{hasActiveDebt ? 'Faiz: Günlük %5' : 'Haftalık Faiz Şartlı'}</span>
               <button
                 onClick={() => {
                   sound.playClick();
@@ -137,11 +166,37 @@ export const Lobby: React.FC<LobbyProps> = ({
                 }}
                 className="text-amber-400 hover:text-amber-200 underline"
               >
-                İsim Değiştir
+                Profil / Üye
               </button>
             </div>
           </div>
         </div>
+
+        {/* ACTIVE DEBT CRITICAL NOTIFICATION BANNER */}
+        {hasActiveDebt && (
+          <div className="relative z-10 mt-5 p-3.5 sm:p-4 rounded-2xl bg-red-950/70 border border-red-500/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-5 h-5 text-red-400 animate-pulse flex-shrink-0" />
+              <div>
+                <span className="font-serif-luxury font-bold text-xs sm:text-sm text-red-200 block">
+                  ⚠️ Kasa Borç Protokolü Aktif: ${totalDebt.toLocaleString('tr-TR')} (Ana Para: ${debtInfo?.principal.toLocaleString('tr-TR')}, Faiz: +${debtInfo?.accruedInterest.toLocaleString('tr-TR')})
+                </span>
+                <span className="text-[11px] text-slate-300">
+                  Günlük %{debtInfo?.dailyRatePercent || 5} faiz işlemektedir. <strong>Haftalık faizlerin ödenmesi ŞARTTIR!</strong> {weeklyDueStatus ? `(Vade: ${weeklyDueStatus.text})` : ''}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                sound.playChip();
+                onOpenVault();
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-serif-luxury font-black text-xs uppercase tracking-wider transition whitespace-nowrap"
+            >
+              Borç & Faizi Öde
+            </button>
+          </div>
+        )}
       </div>
 
       {/* LIVE MULTIPLAYER CASINO FEATURE BANNER */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GameView, UserStats, GameHistoryEntry, isVipManager } from './types';
+import { GameView, UserStats, GameHistoryEntry, isVipManager, VaultDebtInfo, createEmptyDebtInfo } from './types';
 import { Navbar } from './components/Navbar';
 import { Lobby } from './components/Lobby';
 import { BlackjackGame } from './components/BlackjackGame';
@@ -13,6 +13,12 @@ import { VipVaultModal } from './components/VipVaultModal';
 import { ProfileModal } from './components/ProfileModal';
 import { sound } from './utils/audio';
 import { useMultiplayer } from './utils/useMultiplayer';
+import {
+  calculateAccruedDebt,
+  borrowFromVault,
+  repayDebt,
+  simulateAddDays
+} from './utils/debtHelper';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<GameView>('lobby');
@@ -76,6 +82,22 @@ export default function App() {
     return [];
   });
 
+  // Vault Debt & Daily Interest (Persisted in localStorage)
+  const [debtInfo, setDebtInfo] = useState<VaultDebtInfo>(() => {
+    const saved = localStorage.getItem('casino_vault_debt');
+    if (saved !== null) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return calculateAccruedDebt(parsed);
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return createEmptyDebtInfo();
+  });
+
   // Multiplayer Hook Integration
   const multiplayer = useMultiplayer(playerName, bankroll, (payout) => {
     handleUpdateBankroll(payout);
@@ -101,6 +123,19 @@ export default function App() {
     localStorage.setItem('casino_game_history', JSON.stringify(gameHistory));
   }, [gameHistory]);
 
+  // Save vault debt updates
+  useEffect(() => {
+    localStorage.setItem('casino_vault_debt', JSON.stringify(debtInfo));
+  }, [debtInfo]);
+
+  // Periodically check and accrue daily interest
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDebtInfo(prev => calculateAccruedDebt(prev));
+    }, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
+
   const handleUpdateBankroll = (delta: number) => {
     setBankroll(prev => Math.max(0, prev + delta));
   };
@@ -109,8 +144,31 @@ export default function App() {
     setBankroll(Math.max(0, newAmount));
   };
 
+  const handleBorrowFromVault = (amount: number) => {
+    setDebtInfo(prev => borrowFromVault(prev, amount));
+    setBankroll(prev => prev + amount);
+  };
+
+  const handleRepayDebt = (amount: number) => {
+    setDebtInfo(prev => {
+      const { updatedDebt, actualRepaid } = repayDebt(prev, amount);
+      setBankroll(b => Math.max(0, b - actualRepaid));
+      return updatedDebt;
+    });
+  };
+
+  const handleSimulateDay = () => {
+    setDebtInfo(prev => simulateAddDays(prev, 1));
+  };
+
+  const handleResetDebt = () => {
+    const empty = createEmptyDebtInfo();
+    setDebtInfo(empty);
+    localStorage.setItem('casino_vault_debt', JSON.stringify(empty));
+  };
+
   const handleReloadBankroll = () => {
-    // Opens the VIP Vault modal so user can choose manual amount or see authorization
+    // Opens the VIP Vault modal so user can choose manual amount, borrow or see authorization
     setIsVaultOpen(true);
   };
 
@@ -196,6 +254,7 @@ export default function App() {
         playerName={playerName}
         isMuted={isMuted}
         onToggleSound={handleToggleSound}
+        debtInfo={debtInfo}
       />
 
       {/* Main Content Area */}
@@ -211,6 +270,7 @@ export default function App() {
             stats={stats}
             history={gameHistory}
             onResetStats={handleResetStats}
+            debtInfo={debtInfo}
           />
         )}
 
@@ -306,7 +366,7 @@ export default function App() {
         )}
       </main>
 
-      {/* VIP Vault Management Modal (Manual Amount Selection & PasHa Authorization) */}
+      {/* VIP Vault Management Modal (Manual Amount Selection & PasHa Authorization & Member Debt System) */}
       <VipVaultModal
         isOpen={isVaultOpen}
         onClose={() => setIsVaultOpen(false)}
@@ -316,6 +376,11 @@ export default function App() {
         playerName={playerName}
         onSwitchToPasha={handleSwitchToPasha}
         onOpenProfile={() => setIsProfileOpen(true)}
+        debtInfo={debtInfo}
+        onBorrow={handleBorrowFromVault}
+        onRepay={handleRepayDebt}
+        onSimulateDay={handleSimulateDay}
+        onResetDebt={handleResetDebt}
       />
 
       {/* Player Profile & Name Change Modal */}

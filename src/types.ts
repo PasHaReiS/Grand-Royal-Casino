@@ -152,6 +152,32 @@ export interface FilteredStats {
   roulette: { played: number; won: number; bets: number; payouts: number; winRate: number };
 }
 
+export interface VaultDebtInfo {
+  principal: number; // Ana para borcu ($)
+  accruedInterest: number; // Biriken faiz ($)
+  dailyRatePercent: number; // Günlük faiz oranı (varsayılan %5)
+  borrowedAt: number; // Borcun alındığı ilk tarih (timestamp)
+  lastAccrualTimestamp: number; // Son faiz işletilen tarih (timestamp)
+  weeklyDueDate: number; // Haftalık faiz ödeme son tarihi (timestamp, borrowedAt + 7 days)
+  simulatedDaysElapsed?: number; // Test/simülasyon için eklenen gün sayısı
+  totalBorrowedHistorical: number; // Bugüne kadar çekilen toplam borç
+  totalRepaidHistorical: number; // Bugüne kadar geri ödenen toplam borç
+}
+
+export const DEFAULT_DAILY_INTEREST_RATE = 5; // Günlük %5 faiz
+
+export const createEmptyDebtInfo = (): VaultDebtInfo => ({
+  principal: 0,
+  accruedInterest: 0,
+  dailyRatePercent: DEFAULT_DAILY_INTEREST_RATE,
+  borrowedAt: 0,
+  lastAccrualTimestamp: 0,
+  weeklyDueDate: 0,
+  simulatedDaysElapsed: 0,
+  totalBorrowedHistorical: 0,
+  totalRepaidHistorical: 0,
+});
+
 export const isVipManager = (name: string): boolean => {
   return (name || '').trim().toLowerCase() === 'pasha';
 };
