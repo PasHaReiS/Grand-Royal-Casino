@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #080b0e;
+    color: #e5e7eb;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-serif-luxury {
+    font-family: 'Cinzel', Georgia, serif;
+  }
+}
+
+/* Luxury Gold Gradients & Accents */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #fff2b2 0%, #dfac40 30%, #f7e089 50%, #996e1b 85%, #d4a029 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-gradient-border {
+  border: 1px solid transparent;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-image: 
+    linear-gradient(to right, rgba(16, 22, 28, 0.95), rgba(16, 22, 28, 0.95)), 
+    linear-gradient(135deg, #fae28c 0%, #c49432 40%, #7d5711 70%, #edd17d 100%);
+}
+
+.gold-bevel-border {
+  border: 1px solid #d4af37;
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 240, 180, 0.4),
+    inset 0 -1px 2px rgba(80, 50, 5, 0.8),
+    0 4px 14px rgba(0, 0, 0, 0.6);
+}
+
+/* Rich Green Casino Felt Backdrop & Authentic Fabric Weave */
+.casino-felt {
+  background-color: #0b3d23;
+  background-image: 
+    radial-gradient(ellipse at 50% 35%, rgba(26, 122, 69, 0.9) 0%, rgba(10, 60, 34, 0.95) 55%, rgba(5, 30, 17, 1) 100%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.015) 0, rgba(255, 255, 255, 0.015) 1px, transparent 1px, transparent 100%);
+  background-size: 100% 100%, 8px 8px;
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.9), inset 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Authentic Dark Mahogany / Walnut Wood Table Border */
+.wood-rim-mahogany {
+  background: linear-gradient(135deg, #3d1c06 0%, #200d02 25%, #4a2408 50%, #1e0c03 75%, #381a05 100%);
+  border: 3px solid #63330e;
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.95),
+    inset 0 3px 5px rgba(255, 200, 120, 0.25),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.9),
+    0 0 0 2px #d4af37;
+}
+
+/* Stitched Padded Leather Armrest Rail */
+.leather-armrest {
+  background: radial-gradient(ellipse at 50% 0%, #1f242b 0%, #111418 60%, #090b0d 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 
+    inset 0 4px 6px rgba(255, 255, 255, 0.08),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.9),
+    0 12px 24px rgba(0, 0, 0, 0.85);
+}
+
+/* Croupier Chip Rack in Brass / Stainless */
+.croupier-tray {
+  background: linear-gradient(180deg, #1e2530 0%, #0d1117 50%, #1a202c 100%);
+  border: 2px solid #b8860b;
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.9),
+    0 4px 12px rgba(0, 0, 0, 0.8),
+    inset 0 1px 2px rgba(255, 215, 0, 0.3);
+}
+
+/* Semi-circular / Curved Casino Table Geometry */
+.table-horseshoe-curved {
+  border-bottom-left-radius: 240px 180px;
+  border-bottom-right-radius: 240px 180px;
+}
+
+@media (max-width: 640px) {
+  .table-horseshoe-curved {
+    border-bottom-left-radius: 80px 50px;
+    border-bottom-right-radius: 80px 50px;
+  }
+}
+
+.table-bumper {
+  box-shadow: 
+    0 16px 36px rgba(0, 0, 0, 0.95),
+    inset 0 3px 6px rgba(212, 175, 55, 0.45),
+    inset 0 -4px 10px rgba(0, 0, 0, 0.85);
+}
+
+/* 3D Casino Chip Styling */
+.chip-3d {
+  box-shadow: 
+    0 6px 14px rgba(0, 0, 0, 0.7),
+    0 2px 4px rgba(0, 0, 0, 0.8),
+    inset 0 3px 4px rgba(255, 255, 255, 0.45),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.7);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chip-3d:hover:not(:disabled) {
+  transform: translateY(-5px) scale(1.06);
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.75),
+    0 0 20px rgba(234, 179, 8, 0.5),
+    inset 0 3px 5px rgba(255, 255, 255, 0.6);
+}
+
+/* Luxury Gilded Buttons */
+.gold-btn {
+  background: linear-gradient(180deg, #1a1e24 0%, #0d1014 100%);
+  border: 1.5px solid #d4af37;
+  color: #f7e089;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 240, 180, 0.3),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.7);
+  transition: all 0.15s ease;
+}
+
+.gold-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #262c35 0%, #13171d 100%);
+  border-color: #fce183;
+  color: #fff6c9;
+  box-shadow: 
+    0 6px 18px rgba(0, 0, 0, 0.7),
+    0 0 14px rgba(212, 175, 55, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.gold-btn-primary {
+  background: linear-gradient(180deg, #f0c048 0%, #c99320 50%, #996e12 100%);
+  border: 1.5px solid #fff2a8;
+  color: #0b0f14;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 6px 16px rgba(0, 0, 0, 0.6),
+    0 0 16px rgba(212, 175, 55, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  font-weight: 800;
+  transition: all 0.15s ease;
+}
+
+.gold-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffd35e 0%, #daa72c 50%, #aa7c19 100%);
+  box-shadow: 
+    0 8px 22px rgba(0, 0, 0, 0.7),
+    0 0 24px rgba(234, 179, 8, 0.6),
+    inset 0 1px 3px rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+}
+
+/* Card 3D Perspective */
+.card-perspective {
+  perspective: 1000px;
+}
+
+.card-inner {
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Slot Glass Cylinder Effect */
+.slot-viewport-vignette {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.15) 18%,
+    transparent 35%,
+    transparent 65%,
+    rgba(0, 0, 0, 0.15) 82%,
+    rgba(0, 0, 0, 0.85) 100%
+  );
+  pointer-events: none;
+}

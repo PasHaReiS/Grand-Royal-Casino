@@ -1,0 +1,6 @@
+{
+  "name": "Grand Royale Casino",
+  "description": "Avrupa Ruleti (European Roulette), Canlı Çok Oyunculu Masalar (Multiplayer), Blackjack, 5-Card Draw Poker ve lüks Slot Makinesi ile interaktif casino deneyimi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
