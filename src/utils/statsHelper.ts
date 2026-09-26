@@ -54,6 +54,7 @@ export const computeFilteredStats = (
       poker: { played: 0, won: 0, bets: 0, payouts: 0, winRate: 0 },
       slot: { played: 0, won: 0, bets: 0, payouts: 0, winRate: 0 },
       roulette: { played: 0, won: 0, bets: 0, payouts: 0, winRate: 0 },
+      baccarat: { played: 0, won: 0, bets: 0, payouts: 0, winRate: 0 },
     };
 
     for (const item of filtered) {
@@ -66,7 +67,7 @@ export const computeFilteredStats = (
         winCount++;
       }
 
-      const g = gameStats[item.game];
+      const g = gameStats[item.game as keyof typeof gameStats];
       if (g) {
         g.played++;
         g.bets += item.bet;
@@ -78,7 +79,7 @@ export const computeFilteredStats = (
     }
 
     // Compute win rates
-    for (const key of ['blackjack', 'poker', 'slot', 'roulette'] as const) {
+    for (const key of ['blackjack', 'poker', 'slot', 'roulette', 'baccarat'] as const) {
       const g = gameStats[key];
       g.winRate = g.played > 0 ? Math.round((g.won / g.played) * 100) : 0;
     }
@@ -149,6 +150,13 @@ export const computeFilteredStats = (
         payouts: Math.round(totalWon * 0.2),
         winRate: Math.round(gamesPlayed * 0.2) > 0 ? Math.round((rlWon / (gamesPlayed * 0.2)) * 100) : 0,
       },
+      baccarat: {
+        played: 0,
+        won: 0,
+        bets: 0,
+        payouts: 0,
+        winRate: 0,
+      },
     };
   }
 
@@ -165,6 +173,7 @@ export const computeFilteredStats = (
     poker: { played: 0, won: 0, bets: 0, payouts: 0, winRate: 0 },
     slot: { played: 0, won: 0, bets: 0, payouts: 0, winRate: 0 },
     roulette: { played: 0, won: 0, bets: 0, payouts: 0, winRate: 0 },
+    baccarat: { played: 0, won: 0, bets: 0, payouts: 0, winRate: 0 },
   };
 };
 

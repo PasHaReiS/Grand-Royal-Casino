@@ -129,6 +129,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => {
               sound.playClick();
+              onSelectView('baccarat');
+            }}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              currentView === 'baccarat'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-bold'
+                : 'text-slate-300 hover:text-amber-300 hover:bg-slate-800/60'
+            }`}
+          >
+            🎲 Bacarat (Zar Atma)
+          </button>
+          <button
+            onClick={() => {
+              sound.playClick();
               onSelectView('multiplayer');
             }}
             className={`relative px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
@@ -209,7 +222,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Active Debt Badge (if member has outstanding debt) */}
-          {hasDebt && (
+          {hasDebt ? (
             <button
               id="navbar-active-debt-badge"
               onClick={() => {
@@ -227,7 +240,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </div>
             </button>
-          )}
+          ) : debtInfo?.debtForgivenByPatron ? (
+            <button
+              id="navbar-forgiven-badge"
+              onClick={() => {
+                sound.playClick();
+                onOpenVault();
+              }}
+              title="VIP Patron PasHa borçlarınızı affetti! Para çekebilirsiniz."
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/50 hover:bg-emerald-900/60 text-emerald-300 transition active:scale-95 shadow-sm"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span className="text-[9px] font-serif-luxury font-bold uppercase tracking-wider hidden sm:inline">
+                Borç Affedildi (Çekim Açık)
+              </span>
+            </button>
+          ) : null}
 
           {/* Sound Toggle */}
           <button

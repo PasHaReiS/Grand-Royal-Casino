@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { Card, BlackjackHand, BlackjackPhase } from '../types';
 import { createDeck } from '../utils/cards';
@@ -27,7 +27,8 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
   const [tableTier, setTableTier] = useState<TableTier>(() => getSavedTableTier('blackjack'));
   const [isTableSelectorOpen, setIsTableSelectorOpen] = useState<boolean>(false);
 
-  const [deck, setDeck] = useState<Card[]>(() => createDeck(6));
+  const deckRef = useRef<Card[]>(createDeck(6));
+  const [deck, setDeck] = useState<Card[]>(() => deckRef.current);
   const [phase, setPhase] = useState<BlackjackPhase>('betting');
   const [bet, setBet] = useState<number>(() => Math.max(50, getSavedTableTier('blackjack').defaultChip));
   const [lastBet, setLastBet] = useState<number>(() => Math.max(50, getSavedTableTier('blackjack').defaultChip));
@@ -54,14 +55,13 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
 
   // Helper: draw card from deck
   const drawCard = (isFaceUp: boolean = true): { card: Card; newDeck: Card[] } => {
-    let currentDeck = deck;
-    if (currentDeck.length < 15) {
-      currentDeck = createDeck(6);
+    if (deckRef.current.length < 15) {
+      deckRef.current = createDeck(6);
     }
-    const card = { ...currentDeck[0], isFaceUp };
-    const newDeck = currentDeck.slice(1);
-    setDeck(newDeck);
-    return { card, newDeck };
+    const card = { ...deckRef.current[0], isFaceUp };
+    deckRef.current = deckRef.current.slice(1);
+    setDeck(deckRef.current);
+    return { card, newDeck: deckRef.current };
   };
 
   // Start Deal
@@ -87,19 +87,21 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
     setRoundResultMessage('');
     setRoundNetWin(0);
 
-    let currentDeck = deck.length < 15 ? createDeck(6) : [...deck];
+    if (deckRef.current.length < 15) {
+      deckRef.current = createDeck(6);
+    }
 
     // Card 1 to Player
-    const p1 = { ...currentDeck[0], isFaceUp: true };
+    const p1 = { ...deckRef.current[0], isFaceUp: true };
     // Card 1 to Dealer
-    const d1 = { ...currentDeck[1], isFaceUp: true };
+    const d1 = { ...deckRef.current[1], isFaceUp: true };
     // Card 2 to Player
-    const p2 = { ...currentDeck[2], isFaceUp: true };
+    const p2 = { ...deckRef.current[2], isFaceUp: true };
     // Card 2 to Dealer (Hole Card, face down)
-    const d2 = { ...currentDeck[3], isFaceUp: false };
+    const d2 = { ...deckRef.current[3], isFaceUp: false };
 
-    currentDeck = currentDeck.slice(4);
-    setDeck(currentDeck);
+    deckRef.current = deckRef.current.slice(4);
+    setDeck(deckRef.current);
 
     const initialPlayerCards = [p1, p2];
     const initialDealerCards = [d1, d2];
@@ -257,11 +259,13 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
     const [card1, card2] = currentHand.cards;
 
     // Draw 1 card for hand 1 and 1 card for hand 2
-    let currentDeck = deck.length < 15 ? createDeck(6) : [...deck];
-    const newCard1 = { ...currentDeck[0], isFaceUp: true };
-    const newCard2 = { ...currentDeck[1], isFaceUp: true };
-    currentDeck = currentDeck.slice(2);
-    setDeck(currentDeck);
+    if (deckRef.current.length < 15) {
+      deckRef.current = createDeck(6);
+    }
+    const newCard1 = { ...deckRef.current[0], isFaceUp: true };
+    const newCard2 = { ...deckRef.current[1], isFaceUp: true };
+    deckRef.current = deckRef.current.slice(2);
+    setDeck(deckRef.current);
 
     sound.playCardDeal();
 
@@ -537,8 +541,8 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
                     Krupiye kartları bekleniyor...
                   </div>
                 ) : (
-                  dealerCards.map((card) => (
-                    <CardView key={card.id} card={card} size="md" />
+                  dealerCards.map((card, idx) => (
+                    <CardView key={`${card.id}-${idx}`} card={card} size="md" />
                   ))
                 )}
               </div>
@@ -611,8 +615,8 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
                             </span>
                           </div>
                         ) : (
-                          hand.cards.map((card) => (
-                            <CardView key={card.id} card={card} size="md" />
+                          hand.cards.map((card, cIdx) => (
+                            <CardView key={`${card.id}-${idx}-${cIdx}`} card={card} size="md" />
                           ))
                         )}
                       </div>

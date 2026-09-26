@@ -65,6 +65,7 @@ export function borrowFromVault(
     lastAccrualTimestamp: isFirstBorrow ? currentTimestamp : updated.lastAccrualTimestamp,
     weeklyDueDate,
     totalBorrowedHistorical: (updated.totalBorrowedHistorical || 0) + amount,
+    debtForgivenByPatron: false,
   };
 }
 
@@ -180,4 +181,38 @@ export function getWeeklyInterestObligation(
   rate: number = DEFAULT_DAILY_INTEREST_RATE
 ): number {
   return Math.round(principal * (rate / 100) * 7);
+}
+
+/**
+ * Checks if a member has permission to withdraw bankroll funds.
+ * Members can withdraw only if they have no debt OR their debt was forgiven by Patron.
+ */
+export function canMemberWithdraw(
+  debt: VaultDebtInfo,
+  isPatron: boolean = false
+): { allowed: boolean; reason?: string } {
+  if (isPatron) return { allowed: true };
+  const totalDebt = (debt.principal || 0) + (debt.accruedInterest || 0);
+  if (totalDebt <= 0 || debt.debtForgivenByPatron) {
+    return { allowed: true };
+  }
+  return {
+    allowed: false,
+    reason: `Aktif kasa borcunuz ($${totalDebt.toLocaleString('tr-TR')}) bulunmaktadır. Tüzük gereği borçlu üyeler para çekemez. Para çekebilmek için ya borcunuzu ödemeniz ya da VIP Patron PasHa'nın borcunuzu affetmesi gerekmektedir!`,
+  };
+}
+
+/**
+ * Patron clears and forgives all debt for members, unlocking withdrawal rights.
+ */
+export function forgiveAllDebt(currentDebt: VaultDebtInfo): VaultDebtInfo {
+  return {
+    ...currentDebt,
+    principal: 0,
+    accruedInterest: 0,
+    borrowedAt: 0,
+    weeklyDueDate: 0,
+    debtForgivenByPatron: true,
+    forgivenAt: Date.now(),
+  };
 }

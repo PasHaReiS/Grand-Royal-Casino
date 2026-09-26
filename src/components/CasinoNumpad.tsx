@@ -24,6 +24,7 @@ export interface CasinoNumpadModalProps {
   maxAmount?: number;
   onConfirm: (amount: number) => void;
   quickAddValues?: number[];
+  unlimitedMax?: boolean;
 }
 
 export const CasinoNumpadModal: React.FC<CasinoNumpadModalProps> = ({
@@ -37,6 +38,7 @@ export const CasinoNumpadModal: React.FC<CasinoNumpadModalProps> = ({
   maxAmount = 10000000,
   onConfirm,
   quickAddValues = [100, 500, 1000, 5000, 25000, 100000],
+  unlimitedMax = false,
 }) => {
   const [valStr, setValStr] = useState<string>('');
   const modalRef = useRef<HTMLDivElement>(null);
@@ -49,8 +51,8 @@ export const CasinoNumpadModal: React.FC<CasinoNumpadModalProps> = ({
   }, [isOpen, initialValue]);
 
   const currentNumericValue = parseInt(valStr, 10) || 0;
-  const effectiveMax = Math.min(bankroll, maxAmount);
-  const exceedsBankroll = currentNumericValue > bankroll;
+  const effectiveMax = unlimitedMax ? Number.MAX_SAFE_INTEGER : Math.min(bankroll, maxAmount);
+  const exceedsBankroll = unlimitedMax ? false : currentNumericValue > bankroll;
 
   // Listen to physical keyboard when numpad is open
   useEffect(() => {
@@ -87,8 +89,9 @@ export const CasinoNumpadModal: React.FC<CasinoNumpadModalProps> = ({
         return digit === '0' || digit === '00' || digit === '000' ? '' : digit;
       }
       const next = prev + digit;
-      // Prevent overflow over $100 Billion
-      if (next.length > 11) return prev;
+      // Allow up to 15 digits (trillions) if unlimitedMax, else 11 digits
+      const maxLen = unlimitedMax ? 15 : 11;
+      if (next.length > maxLen) return prev;
       return next;
     });
   };
@@ -107,7 +110,7 @@ export const CasinoNumpadModal: React.FC<CasinoNumpadModalProps> = ({
     sound.playChip();
     setValStr((prev) => {
       const current = parseInt(prev, 10) || 0;
-      const next = Math.min(effectiveMax, current + amount);
+      const next = unlimitedMax ? current + amount : Math.min(effectiveMax, current + amount);
       return next > 0 ? next.toString() : '';
     });
   };
@@ -125,7 +128,7 @@ export const CasinoNumpadModal: React.FC<CasinoNumpadModalProps> = ({
     sound.playChip();
     const current = parseInt(valStr, 10) || 0;
     if (current > 0) {
-      const doubled = Math.min(effectiveMax, current * 2);
+      const doubled = unlimitedMax ? current * 2 : Math.min(effectiveMax, current * 2);
       setValStr(doubled.toString());
     } else {
       setValStr('100');
@@ -134,7 +137,7 @@ export const CasinoNumpadModal: React.FC<CasinoNumpadModalProps> = ({
 
   const handleAllIn = () => {
     sound.playChip();
-    if (effectiveMax > 0) {
+    if (effectiveMax > 0 && !unlimitedMax) {
       setValStr(effectiveMax.toString());
     }
   };
@@ -142,8 +145,8 @@ export const CasinoNumpadModal: React.FC<CasinoNumpadModalProps> = ({
   const handleConfirm = () => {
     sound.playChip();
     const parsed = parseInt(valStr, 10) || 0;
-    const clamped = Math.max(0, Math.min(effectiveMax, parsed));
-    onConfirm(clamped);
+    const finalAmount = unlimitedMax ? Math.max(0, parsed) : Math.max(0, Math.min(effectiveMax, parsed));
+    onConfirm(finalAmount);
     onClose();
   };
 

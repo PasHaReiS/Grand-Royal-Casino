@@ -9,7 +9,63 @@ export interface Card {
   isFaceUp: boolean;
 }
 
-export type GameView = 'lobby' | 'blackjack' | 'poker' | 'slot' | 'roulette' | 'multiplayer';
+export type GameView = 'lobby' | 'blackjack' | 'poker' | 'slot' | 'roulette' | 'baccarat' | 'multiplayer';
+
+// ---------------- BACCARAT & CASINO DICE (BARBUT) TYPES ----------------
+export type BaccaratBetType =
+  | 'pass_line'   // Kazanır / Ön (Come-out 7,11 wins; 2,3,12 craps; point)
+  | 'dont_pass'   // Kaybeder / Arka (2,3 wins; 12 push; 7,11 loses; point)
+  | 'player'      // Baccarat Oyuncu (1:1)
+  | 'banker'      // Baccarat Kasa (1:1 / 0.95:1)
+  | 'tie'         // Baccarat Beraberlik (8:1)
+  | 'field'       // Alan: 2, 3, 4, 9, 10, 11, 12 (2 pays 2:1, 12 pays 3:1)
+  | 'any_seven'   // Kırmızı Yedi (4:1)
+  | 'any_craps'   // Craps / Barbut 2, 3, 12 (7:1)
+  | 'yo_eleven'   // 11 (15:1)
+  | 'snake_eyes'  // 1-1 Hep Yek (30:1)
+  | 'boxcars'     // 6-6 Düşeş (30:1)
+  | 'hard_4'      // 2-2 Dört Cihar (9:1)
+  | 'hard_6'      // 3-3 Dü Se (9:1)
+  | 'hard_8'      // 4-4 Dört Dört (9:1)
+  | 'hard_10'     // 5-5 Dü Beş (9:1)
+  | 'place_4'     // Sayı 4 (9:5)
+  | 'place_5'     // Sayı 5 (7:5)
+  | 'place_6'     // Sayı 6 (7:6)
+  | 'place_8'     // Sayı 8 (7:6)
+  | 'place_9'     // Sayı 9 (7:5)
+  | 'place_10';   // Sayı 10 (9:5)
+
+export interface BaccaratBet {
+  id: string;
+  type: BaccaratBetType;
+  amount: number;
+  label: string;
+  payoutMultiplier: number;
+}
+
+export interface DiceRollResult {
+  die1: number; // 1 to 6
+  die2: number; // 1 to 6
+  total: number; // 2 to 12
+  isPointHit?: boolean;
+  isSevenOut?: boolean;
+  isNatural?: boolean;
+  isCraps?: boolean;
+  pointEstablished?: number | null;
+  baccaratWinner: 'player' | 'banker' | 'tie';
+  playerVal: number;
+  bankerVal: number;
+}
+
+export interface DiceHistoryItem {
+  id: string;
+  die1: number;
+  die2: number;
+  total: number;
+  point: number | null;
+  timestamp: number;
+  statusText: string;
+}
 
 // ---------------- ROULETTE TYPES ----------------
 export type RouletteBetType =
@@ -121,7 +177,7 @@ export type StatTimeFilter = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all';
 export interface GameHistoryEntry {
   id: string;
   timestamp: number;
-  game: 'blackjack' | 'poker' | 'slot' | 'roulette';
+  game: 'blackjack' | 'poker' | 'slot' | 'roulette' | 'baccarat';
   bet: number;
   won: number;
   netWin: number;
@@ -136,6 +192,7 @@ export interface UserStats {
   pokerWins: number;
   slotWins: number;
   rouletteWins: number;
+  baccaratWins?: number;
 }
 
 export interface FilteredStats {
@@ -150,6 +207,7 @@ export interface FilteredStats {
   poker: { played: number; won: number; bets: number; payouts: number; winRate: number };
   slot: { played: number; won: number; bets: number; payouts: number; winRate: number };
   roulette: { played: number; won: number; bets: number; payouts: number; winRate: number };
+  baccarat?: { played: number; won: number; bets: number; payouts: number; winRate: number };
 }
 
 export interface VaultDebtInfo {
@@ -162,8 +220,11 @@ export interface VaultDebtInfo {
   simulatedDaysElapsed?: number; // Test/simülasyon için eklenen gün sayısı
   totalBorrowedHistorical: number; // Bugüne kadar çekilen toplam borç
   totalRepaidHistorical: number; // Bugüne kadar geri ödenen toplam borç
+  debtForgivenByPatron?: boolean; // Patron tarafından borç affedildi mi
+  forgivenAt?: number; // Affedilme zamanı
 }
 
+export const MAX_MEMBER_DEBT = 100_000_000; // Üyelerde maksimum borç tutarı: $100.000.000 (100 Milyon Dolar)
 export const DEFAULT_DAILY_INTEREST_RATE = 5; // Günlük %5 faiz
 
 export const createEmptyDebtInfo = (): VaultDebtInfo => ({
@@ -176,6 +237,8 @@ export const createEmptyDebtInfo = (): VaultDebtInfo => ({
   simulatedDaysElapsed: 0,
   totalBorrowedHistorical: 0,
   totalRepaidHistorical: 0,
+  debtForgivenByPatron: false,
+  forgivenAt: 0,
 });
 
 export const isVipManager = (name: string): boolean => {

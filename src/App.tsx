@@ -6,6 +6,7 @@ import { BlackjackGame } from './components/BlackjackGame';
 import { PokerGame } from './components/PokerGame';
 import { SlotGame } from './components/SlotGame';
 import { RouletteGame } from './components/RouletteGame';
+import { BaccaratGame } from './components/BaccaratGame';
 import { MultiplayerLobby } from './components/MultiplayerLobby';
 import { MultiplayerTable } from './components/MultiplayerTable';
 import { RulesModal } from './components/RulesModal';
@@ -162,9 +163,13 @@ export default function App() {
   };
 
   const handleResetDebt = () => {
-    const empty = createEmptyDebtInfo();
-    setDebtInfo(empty);
-    localStorage.setItem('casino_vault_debt', JSON.stringify(empty));
+    const forgiven: VaultDebtInfo = {
+      ...createEmptyDebtInfo(),
+      debtForgivenByPatron: true,
+      forgivenAt: Date.now(),
+    };
+    setDebtInfo(forgiven);
+    localStorage.setItem('casino_vault_debt', JSON.stringify(forgiven));
   };
 
   const handleReloadBankroll = () => {
@@ -188,7 +193,7 @@ export default function App() {
     setIsMuted(muted);
   };
 
-  const handleRecordGameResult = (bet: number, won: number, game: 'blackjack' | 'poker' | 'slot' | 'roulette') => {
+  const handleRecordGameResult = (bet: number, won: number, game: 'blackjack' | 'poker' | 'slot' | 'roulette' | 'baccarat') => {
     const netWin = won - bet;
     const isWin = netWin > 0;
 
@@ -214,6 +219,7 @@ export default function App() {
         pokerWins: game === 'poker' && isWin ? prev.pokerWins + 1 : prev.pokerWins,
         slotWins: game === 'slot' && isWin ? prev.slotWins + 1 : prev.slotWins,
         rouletteWins: game === 'roulette' && isWin ? (prev.rouletteWins || 0) + 1 : (prev.rouletteWins || 0),
+        baccaratWins: game === 'baccarat' && isWin ? (prev.baccaratWins || 0) + 1 : (prev.baccaratWins || 0),
       };
     });
   };
@@ -311,6 +317,16 @@ export default function App() {
             bankroll={bankroll}
             onUpdateBankroll={handleUpdateBankroll}
             onRecordGameResult={handleRecordGameResult}
+          />
+        )}
+
+        {currentView === 'baccarat' && (
+          <BaccaratGame
+            bankroll={bankroll}
+            onUpdateBankroll={handleUpdateBankroll}
+            onRecordGameResult={handleRecordGameResult}
+            playerName={playerName}
+            onOpenVault={() => setIsVaultOpen(true)}
           />
         )}
 

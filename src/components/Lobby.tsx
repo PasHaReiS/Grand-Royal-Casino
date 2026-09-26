@@ -256,10 +256,10 @@ export const Lobby: React.FC<LobbyProps> = ({
             <Sparkles className="w-5 h-5 text-amber-400" />
             Öne Çıkan Casino Oyunları
           </h2>
-          <span className="text-xs text-slate-400">4 Farklı Oyun Modülü</span>
+          <span className="text-xs text-slate-400">5 Farklı Oyun Modülü</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {/* Card 1: Blackjack */}
           <div 
             onClick={() => {
@@ -399,6 +399,42 @@ export const Lobby: React.FC<LobbyProps> = ({
 
             <div className="pt-6 relative z-10 flex items-center justify-between text-xs font-bold text-amber-400 group-hover:text-amber-300">
               <span>Çarkı Döndür</span>
+              <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition" />
+            </div>
+          </div>
+
+          {/* Card 5: Baccarat & Barbut Zar Masası */}
+          <div 
+            onClick={() => {
+              sound.playClick();
+              onSelectGame('baccarat');
+            }}
+            className="group relative rounded-2xl p-6 bg-slate-900/80 border border-amber-500/30 hover:border-amber-400 transition-all duration-300 shadow-xl hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition" />
+            <div className="space-y-3 relative z-10">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 via-amber-600 to-slate-950 border border-amber-400/40 flex items-center justify-center text-2xl shadow-lg">
+                🎲
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Manuel Elle Zar Atma</span>
+                <h3 className="font-serif-luxury font-black text-xl text-slate-100 group-hover:text-amber-300 transition">
+                  Bacarat & Barbut Zar
+                </h3>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Zarları fare veya dokunmatik ekranınızla elinizle tutup çuhaya fırlatın. Pas Hattı, Point Sayı sistemi,
+                Punto-Banco düellosu ve 30:1 Hep Yek & Düşeş çarpanları!
+              </p>
+              <div className="flex items-center gap-2 flex-wrap text-[11px] pt-1">
+                <span className="px-2 py-0.5 rounded bg-red-950/80 text-red-300 border border-red-600/30">Elle Zar Atma</span>
+                <span className="px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-600/30">Punto Banco</span>
+                <span className="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-600/30">30:1 Hep Yek</span>
+              </div>
+            </div>
+
+            <div className="pt-6 relative z-10 flex items-center justify-between text-xs font-bold text-amber-400 group-hover:text-amber-300">
+              <span>Masaya Otur & Zar At</span>
               <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition" />
             </div>
           </div>

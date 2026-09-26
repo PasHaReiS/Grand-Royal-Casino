@@ -9,7 +9,7 @@ interface RulesModalProps {
 }
 
 export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'blackjack' | 'poker' | 'slot' | 'roulette'>('blackjack');
+  const [activeTab, setActiveTab] = useState<'blackjack' | 'poker' | 'slot' | 'roulette' | 'baccarat'>('blackjack');
 
   if (!isOpen) return null;
 
@@ -90,6 +90,19 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
             }`}
           >
             🎡 Avrupa Ruleti
+          </button>
+          <button
+            onClick={() => {
+              sound.playClick();
+              setActiveTab('baccarat');
+            }}
+            className={`pb-2.5 px-3 border-b-2 transition ${
+              activeTab === 'baccarat'
+                ? 'border-amber-400 text-amber-300'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🎲 Bacarat & Barbut
           </button>
         </div>
 
@@ -299,6 +312,76 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                   <li><strong className="text-amber-300">Orphelins:</strong> İki ana dilim arasındaki yetim 8 sayı (1, 20, 14, 31, 9, 17, 34, 6).</li>
                   <li><strong className="text-amber-300">Jeu Zéro:</strong> Sıfıra en yakın 7 komşu cep.</li>
                 </ul>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'baccarat' && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/50 via-amber-950/30 to-emerald-950/50 border border-amber-500/40">
+                <h3 className="font-serif-luxury font-bold text-amber-300 text-base mb-1 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  Baccarat & Barbut Zar Masası (Canlı Zar Oyunu)
+                </h3>
+                <p>
+                  Oyun, yeşil çuha üzerinde manuel elle fırlatılan 2 adet zar ile oynanır. Hem geleneksel Baccarat'ın
+                  Oyuncu (Punto) vs Kasa (Banco) düellosu, hem de Las Vegas Barbut (Craps) kuralları tek bir lüks masada birleştirilmiştir.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
+                  <h4 className="font-bold text-amber-400 mb-1">Manuel Elle Fırlatma Fiziği</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Masada zarları farenizle veya dokunmatik ekranda parmağınızla tutarak geriye çekip istediğiniz hız ve açıyla ileri doğru atabilirsiniz.
+                    Zarlar sürtünme, kütle çekimi ve kauçuk kenar bantlarından sekme fiziğine göre döner ve durur.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
+                  <h4 className="font-bold text-amber-400 mb-1">Baccarat Zar Düellosu</h4>
+                  <ul className="list-disc list-inside space-y-1 text-xs text-slate-400">
+                    <li><strong className="text-amber-300">Oyuncu (Punto):</strong> 1. Zar daha büyükse 1:1 öder.</li>
+                    <li><strong className="text-amber-300">Kasa (Banco):</strong> 2. Zar daha büyükse 1:1 öder.</li>
+                    <li><strong className="text-amber-300">Beraberlik (Tie):</strong> Zarlar eşit (çift) gelirse 8:1 devasa kazanç!</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                <h4 className="font-bold text-amber-400">Pas Hattı (Pass Line) & Sayı (Point) Mekaniği</h4>
+                <ul className="list-disc list-inside space-y-1.5 text-xs text-slate-300">
+                  <li><strong>İlk Zar (Come-Out Roll):</strong> Toplam 7 veya 11 gelirse "Doğal" (Natural) sayılır ve Pas Hattı 1:1 kazanır. Toplam 2, 3 veya 12 gelirse (Craps) Pas Hattı kaybeder.</li>
+                  <li><strong>Masa Sayısı (Point ON):</strong> Toplam 4, 5, 6, 8, 9 veya 10 gelirse o sayı masa sayısı (Point) olur. Masadaki altın Point puck 'ON' durumuna geçer.</li>
+                  <li><strong>Sayı Turu:</strong> 7 gelmeden önce masa sayısı tekrar atılırsa Pas Hattı kazanır! Sayıdan önce 7 gelirse (Seven Out) masa sayısı sıfırlanır ve Pas Hattı kaybeder.</li>
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 space-y-2">
+                <h4 className="font-bold text-amber-300 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  Barbut Çiftleri (Hardways) & Yüksek Çarpanlar
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                  <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                    <span className="text-amber-300 font-bold">1-1 Hep Yek:</span> 30:1 Ödeme
+                  </div>
+                  <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                    <span className="text-amber-300 font-bold">6-6 Düşeş:</span> 30:1 Ödeme
+                  </div>
+                  <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                    <span className="text-amber-300 font-bold">Yo (11):</span> 15:1 Ödeme
+                  </div>
+                  <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                    <span className="text-amber-300 font-bold">Hardways (2-2, 3-3, 4-4, 5-5):</span> 9:1 Ödeme
+                  </div>
+                  <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                    <span className="text-amber-300 font-bold">Craps (2, 3, 12):</span> 7:1 Ödeme
+                  </div>
+                  <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                    <span className="text-amber-300 font-bold">Field (2, 3, 4, 9, 10, 11, 12):</span> 1:1 (2 için 2:1, 12 için 3:1)
+                  </div>
+                </div>
               </div>
             </div>
           )}

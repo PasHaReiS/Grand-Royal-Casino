@@ -41,15 +41,17 @@ export function getPokerRankNumeric(rank: Rank): number {
   }
 }
 
+let globalCardSeq = 1;
+
 export function createDeck(numDecks: number = 1): Card[] {
   const deck: Card[] = [];
-  let idCounter = 1;
 
   for (let d = 0; d < numDecks; d++) {
     for (const suit of SUITS) {
       for (const rank of RANKS) {
+        const uniqueSuffix = `${Date.now().toString(36)}-${globalCardSeq++}-${Math.random().toString(36).substring(2, 9)}`;
         deck.push({
-          id: `card-${d}-${suit}-${rank}-${idCounter++}-${Math.random().toString(36).substring(2, 6)}`,
+          id: `card-${d}-${suit}-${rank}-${uniqueSuffix}`,
           suit,
           rank,
           value: getRankBaseValue(rank),

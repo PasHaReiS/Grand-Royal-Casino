@@ -291,7 +291,7 @@ export const PokerGame: React.FC<PokerGameProps> = ({
                     const isWinning = dealerEval ? dealerEval.winningIndices.includes(idx) : false;
                     return (
                       <CardView
-                        key={card.id}
+                        key={`${card.id}-${idx}`}
                         card={card}
                         size="md"
                         isWinning={isWinning && phase === 'showdown'}
@@ -351,7 +351,7 @@ export const PokerGame: React.FC<PokerGameProps> = ({
 
                     return (
                       <CardView
-                        key={card.id}
+                        key={`${card.id}-${idx}`}
                         card={card}
                         size="md"
                         interactive={phase === 'holding'}
